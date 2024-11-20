@@ -588,7 +588,11 @@ class TensorVariable(VariableTracker):
 
         from .builder import wrap_fx_proxy
 
-        return wrap_fx_proxy(
+        # Check if the method is supported and returns a tensor
+        if not hasattr(torch.Tensor, name):
+            raise NotImplementedError(f"Unsupported method: {name}")
+
+        result = wrap_fx_proxy(
             tx,
             tx.output.create_proxy(
                 "call_method",
@@ -596,6 +600,11 @@ class TensorVariable(VariableTracker):
                 *proxy_args_kwargs([self, *args], kwargs),
             ),
         )
+
+        if not isinstance(result, TensorVariable):
+            raise NotImplementedError(f"Method {name} does not return a tensor")
+
+        return result
 
     def method_size(self, *args, **kwargs):
         return self._method_size_stride("size", *args, **kwargs)
